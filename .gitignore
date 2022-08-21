@@ -1,0 +1,10 @@
+.editorconfig
+
+*.DotSettings
+*.DotSettings.user
+
+**/.vs/
+**/obj/
+**/bin/
+**/build/
+src/.sync
