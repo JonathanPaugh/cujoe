@@ -4,7 +4,10 @@
 *.DotSettings.user
 
 **/.vs/
+**/.idea/
 **/obj/
 **/bin/
 **/build/
+src/ffmpeg/
+src/private/content
 src/.sync
