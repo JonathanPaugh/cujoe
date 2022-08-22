@@ -21,19 +21,21 @@ namespace Cujoe
 
         private static TimeSpan MinChunkDuration = TimeSpan.FromSeconds(1);
         private static TimeSpan TargetChunkDuration = TimeSpan.FromSeconds(5);
+        private static TimeSpan ConvertTimeout = TimeSpan.FromSeconds(30);
 
-        private static TimeSpan CONVERT_TIMEOUT = TimeSpan.FromSeconds(30);
+        private static string ContentDirectory => GetSystemPath("private/content");
+        private static string ChunkDirectory => GetSystemPath("private/chunks");
 
         private static Encoding Encoding => Encoding.UTF8;
-
         protected override bool Caching => false;
-
-        private bool running = true;
 
         private readonly Engine engine = new(GetSystemPath("ffmpeg/ffmpeg.exe"));
         private readonly Dictionary<string, Queue<MediaFile>> registry = new();
+        private readonly Random random = new(Environment.TickCount);
 
         private MediaFile latestChunk;
+
+        private bool running = true;
 
         public WebServer(int http, int https) : base(http, https) {}
 
@@ -138,7 +140,29 @@ namespace Cujoe
 
         private InputFile GetNextVideo()
         {
-            return new InputFile(GetSystemPath("private/content/bunny/frag_bunny.mp4"));
+            string[] directoryChoices = Directory.GetDirectories(ContentDirectory);
+
+            if (directoryChoices.Length <= 0)
+            {
+                Log.Write($"Content directory is empty: {ContentDirectory}");
+                return null;
+            }
+
+            int directoryIndex = random.Next(directoryChoices.Length);
+            string selectedDirectory = directoryChoices[directoryIndex];
+
+            string[] fileChoices = Directory.GetFiles(selectedDirectory);
+
+            if (fileChoices.Length <= 0)
+            {
+                Log.Write($"Selected directory does not contain any files: {selectedDirectory}");
+                return null;
+            }
+
+            int fileIndex = random.Next(fileChoices.Length);
+            string selectedFile = fileChoices[fileIndex];
+
+            return new InputFile(selectedFile);
         }
 
         private async Task<InputFile[]> GetVideoChunks(InputFile input)
@@ -156,11 +180,11 @@ namespace Cujoe
             List<Task<InputFile>> tasks = new();
             for (int i = 0; (i * TargetChunkDuration) + MinChunkDuration < duration; i++)
             {
-                string path = GetSystemPath($"private/content/chunks/{id}");
+                string path = Path.Combine(ChunkDirectory, id.ToString());
 
                 Directory.CreateDirectory(path);
 
-                OutputFile output = new($"{path}{Path.DirectorySeparatorChar}{i}.{VIDEO_FORMAT}");
+                OutputFile output = new OutputFile(Path.Combine(path, $"{i}.{VIDEO_FORMAT}"));
 
                 TimeSpan chunkStart = TargetChunkDuration * i;
                 TimeSpan chunkDuration = TargetChunkDuration;
@@ -175,7 +199,7 @@ namespace Cujoe
                 }
                 catch (TimeoutException exception)
                 {
-                    throw new TimeoutException($"{exception.Message} Convert '{input.Label()}': {chunkStart} - {chunkStart + chunkDuration} took longer than {CONVERT_TIMEOUT.TotalSeconds} seconds.");
+                    throw new TimeoutException($"{exception.Message} Convert '{input.Label()}': {chunkStart} - {chunkStart + chunkDuration} took longer than {ConvertTimeout.TotalSeconds} seconds.");
                 }
 
             }
@@ -209,7 +233,7 @@ namespace Cujoe
             MediaFile video;
             try
             {
-                video = await engine.ConvertAsync(input, output, options, CancellationToken.None).WaitAsync(CONVERT_TIMEOUT);
+                video = await engine.ConvertAsync(input, output, options, CancellationToken.None).WaitAsync(ConvertTimeout);
             }
             catch (TimeoutException exception)
             {
