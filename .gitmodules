@@ -1,0 +1,3 @@
+[submodule "JapeCore"]
+	path = JapeCore
+	url = https://github.com/JonathanPaugh/JapeCore.git

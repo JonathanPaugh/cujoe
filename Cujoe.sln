@@ -3,7 +3,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31919.166
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cujoe", "Cujoe.csproj", "{223BEA84-CC72-46F7-96BF-D49C1915CD30}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cujoe", "src\Cujoe.csproj", "{A581D3B1-5BB1-4782-8942-D87BB4FF16F4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JapeCore", "JapeCore\JapeCore\JapeCore.csproj", "{0B1809DD-1B4E-4393-B8E1-0B592EE34A47}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JapeHttp", "JapeCore\JapeHttp\JapeHttp.csproj", "{62775849-851C-4ED5-A43A-0F7959DD4BD0}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JapeService", "JapeCore\JapeService\JapeService.csproj", "{22B8BB7C-011F-444F-81BE-571C304F2EF6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JapeWeb", "JapeCore\JapeWeb\JapeWeb.csproj", "{419DDBA2-444B-49AE-A6A7-95BDBCE39A68}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JapeDatabase", "JapeCore\JapeDatabase\JapeDatabase.csproj", "{EBA2DAE1-C67A-45FD-BB51-FB1435A4A3DB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,10 +21,30 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{223BEA84-CC72-46F7-96BF-D49C1915CD30}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{223BEA84-CC72-46F7-96BF-D49C1915CD30}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{223BEA84-CC72-46F7-96BF-D49C1915CD30}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{223BEA84-CC72-46F7-96BF-D49C1915CD30}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A581D3B1-5BB1-4782-8942-D87BB4FF16F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A581D3B1-5BB1-4782-8942-D87BB4FF16F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A581D3B1-5BB1-4782-8942-D87BB4FF16F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A581D3B1-5BB1-4782-8942-D87BB4FF16F4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0B1809DD-1B4E-4393-B8E1-0B592EE34A47}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0B1809DD-1B4E-4393-B8E1-0B592EE34A47}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0B1809DD-1B4E-4393-B8E1-0B592EE34A47}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0B1809DD-1B4E-4393-B8E1-0B592EE34A47}.Release|Any CPU.Build.0 = Release|Any CPU
+		{62775849-851C-4ED5-A43A-0F7959DD4BD0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{62775849-851C-4ED5-A43A-0F7959DD4BD0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{62775849-851C-4ED5-A43A-0F7959DD4BD0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{62775849-851C-4ED5-A43A-0F7959DD4BD0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{22B8BB7C-011F-444F-81BE-571C304F2EF6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{22B8BB7C-011F-444F-81BE-571C304F2EF6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{22B8BB7C-011F-444F-81BE-571C304F2EF6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{22B8BB7C-011F-444F-81BE-571C304F2EF6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{419DDBA2-444B-49AE-A6A7-95BDBCE39A68}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{419DDBA2-444B-49AE-A6A7-95BDBCE39A68}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{419DDBA2-444B-49AE-A6A7-95BDBCE39A68}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{419DDBA2-444B-49AE-A6A7-95BDBCE39A68}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EBA2DAE1-C67A-45FD-BB51-FB1435A4A3DB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EBA2DAE1-C67A-45FD-BB51-FB1435A4A3DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EBA2DAE1-C67A-45FD-BB51-FB1435A4A3DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EBA2DAE1-C67A-45FD-BB51-FB1435A4A3DB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

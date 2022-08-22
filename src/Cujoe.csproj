@@ -1,0 +1,50 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<OutputType>Exe</OutputType>
+		<DebugType>none</DebugType>
+		<DebugSymbols>false</DebugSymbols>
+		<AllowedReferenceRelatedFileExtensions>*.pdb</AllowedReferenceRelatedFileExtensions>
+		<SelfContained>true</SelfContained>
+		<PublishTrimmed>false</PublishTrimmed>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
+		<StartupObject>Cujoe.Program</StartupObject>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+		<PublishSingleFile>true</PublishSingleFile>
+		<DefineConstants>TRACE</DefineConstants>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+		<DefineConstants>DEBUG;TRACE</DefineConstants>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Watch Include="public\**" />
+		<Content Include="public\**">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="private\**">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="ffmpeg\**">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="xFFmpeg.NET" Version="7.1.3" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\JapeCore\JapeCore\JapeCore.csproj" />
+		<ProjectReference Include="..\JapeCore\JapeDatabase\JapeDatabase.csproj" />
+		<ProjectReference Include="..\JapeCore\JapeHttp\JapeHttp.csproj" />
+		<ProjectReference Include="..\JapeCore\JapeService\JapeService.csproj" />
+		<ProjectReference Include="..\JapeCore\JapeWeb\JapeWeb.csproj" />
+	</ItemGroup>
+</Project>
