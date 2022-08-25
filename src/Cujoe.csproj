@@ -3,8 +3,6 @@
 	<PropertyGroup>
 		<TargetFramework>net6.0</TargetFramework>
 		<OutputType>Exe</OutputType>
-		<DebugType>none</DebugType>
-		<DebugSymbols>false</DebugSymbols>
 		<AllowedReferenceRelatedFileExtensions>*.pdb</AllowedReferenceRelatedFileExtensions>
 		<SelfContained>true</SelfContained>
 		<PublishTrimmed>false</PublishTrimmed>
@@ -16,11 +14,15 @@
 		<RuntimeIdentifier>linux-x64</RuntimeIdentifier>
 		<PublishSingleFile>true</PublishSingleFile>
 		<DefineConstants>TRACE</DefineConstants>
+		<DebugType>none</DebugType>
+		<DebugSymbols>false</DebugSymbols>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
 		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
 		<DefineConstants>DEBUG;TRACE</DefineConstants>
+		<DebugType>full</DebugType>
+		<DebugSymbols>true</DebugSymbols>
 	</PropertyGroup>
 
 	<ItemGroup>

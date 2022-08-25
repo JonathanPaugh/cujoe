@@ -30,7 +30,7 @@ namespace Cujoe
 
         private static string DefaultChunkDirectory => GetSystemPath("chunks");
 
-        private static string[] ValidContent => new [] { "bunny", "ow" };
+        private static string[] ValidContent => new [] { "at", "sb" };
 
         private readonly Engine engine = new(GetSystemPath("ffmpeg/ffmpeg.exe"));
         private readonly Dictionary<string, Queue<MediaFile>> registry = new();
@@ -115,11 +115,12 @@ namespace Cujoe
             {
                 InputFile file = await stream.Next();
 
-                latestChunk = file;
                 foreach (Queue<MediaFile> queue in registry.Values)
                 {
                     queue.Enqueue(file);
                 }
+
+                latestChunk = file;
 
                 Log.Write($"Broadcast chunk: {file.Label()}");
 
@@ -136,7 +137,7 @@ namespace Cujoe
             Log.Write($"Loading video: {input.Label()}");
 
             Guid id = Guid.NewGuid();
-            Log.Write($"Fragmenting video id: {id}");
+            Log.Write($"Fragmenting video: {id}");
             await foreach (InputFile file in FragmentVideo(id, input))
             {
                 yield return file;
@@ -235,8 +236,6 @@ namespace Cujoe
                     yield return file;
                 }
             }
-
-            yield return null;
         }
 
         private static string GetSystemPath(string path) => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, SystemPath.Format(path));
@@ -272,7 +271,7 @@ namespace Cujoe
                 InputFile chunk = new(file.FileInfo.FullName);
                 await engine.GetMetaDataAsync(chunk, CancellationToken.None);
 
-                Log.Write($"Done: {start} - {start + duration}");
+                Log.Write($"Chunk '{start} - {start + duration}': {chunk.Label()}");
 
                 return chunk;
             }
@@ -280,12 +279,12 @@ namespace Cujoe
 
         public class Stream
         {
-            private const int CHUNK_THRESHOLD = 30;
+            private const int CACHE_SIZE = 10;
 
             private readonly Queue<InputFile> queue = new();
             private IAsyncEnumerator<InputFile> enumerator;
 
-            private bool running = false;
+            private bool running;
 
             public Stream(Func<IAsyncEnumerator<InputFile>> generator)
             {
@@ -301,17 +300,15 @@ namespace Cujoe
             {
                 if (queue.Count <= 0)
                 {
-                    Log.Write("Warning: Stream ran out of chunks, waiting for data...");
+                    Log.Write("Warning: Stream ran out of chunks");
 
                     await GenerateData();
 
                     return queue.Dequeue();
                 }
 
-                if (!running && queue.Count < CHUNK_THRESHOLD)
+                if (!running && queue.Count < CACHE_SIZE)
                 {
-                    Log.Write($"Warning: Stream has fell below chunk threshold '{CHUNK_THRESHOLD}' chunks, generating data...");
-
                     #pragma warning disable CS4014
                     GenerateData();
                     #pragma warning restore CS4014
@@ -331,7 +328,7 @@ namespace Cujoe
                 #pragma warning disable CS4014
                 Task.Run(async () =>
                 {
-                    while (queue.Count <= CHUNK_THRESHOLD)
+                    while (queue.Count <= CACHE_SIZE)
                     {
                         await enumerator.MoveNextAsync();
                         Queue(enumerator.Current);
@@ -344,7 +341,7 @@ namespace Cujoe
             public async IAsyncEnumerator<InputFile> GetEnumerator(Func<IAsyncEnumerator<InputFile>> generator)
             {
                 while (true) {
-                    enumerator = generator();
+                    IAsyncEnumerator<InputFile> enumerator = generator();
                     while (await enumerator.MoveNextAsync())
                     {
                         yield return enumerator.Current;
