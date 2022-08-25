@@ -9,5 +9,5 @@
 **/bin/
 **/build/
 src/ffmpeg/
-src/private/content
+src/content
 src/.sync

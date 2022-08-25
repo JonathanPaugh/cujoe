@@ -19,25 +19,37 @@ namespace Cujoe
     {
         private const VideoFormat VIDEO_FORMAT = VideoFormat.webm;
 
-        private static TimeSpan MinChunkDuration = TimeSpan.FromSeconds(1);
-        private static TimeSpan TargetChunkDuration = TimeSpan.FromSeconds(5);
-        private static TimeSpan ConvertTimeout = TimeSpan.FromSeconds(30);
-
-        private static string ContentDirectory => GetSystemPath("private/content");
-        private static string ChunkDirectory => GetSystemPath("private/chunks");
-
         private static Encoding Encoding => Encoding.UTF8;
         protected override bool Caching => false;
+
+        private static TimeSpan MinChunkDuration => TimeSpan.FromSeconds(1);
+        private static TimeSpan TargetChunkDuration => TimeSpan.FromSeconds(5);
+
+        private static int ConversionProcessors => Math.Min(8, Environment.ProcessorCount);
+        private static TimeSpan ConvertTimeout => TimeSpan.FromSeconds(30);
+
+        private static string DefaultChunkDirectory => GetSystemPath("chunks");
+
+        private static string[] ValidContent => new [] { "bunny", "ow" };
 
         private readonly Engine engine = new(GetSystemPath("ffmpeg/ffmpeg.exe"));
         private readonly Dictionary<string, Queue<MediaFile>> registry = new();
         private readonly Random random = new(Environment.TickCount);
 
+        private bool running;
+        private readonly string contentDirectory;
+
         private MediaFile latestChunk;
 
-        private bool running = true;
+        public new static ICommandArg[] Args => JapeService.Service.Args.Concat(new ICommandArg[]
+        {
+            CommandArg<string>.CreateOptional("--content", "<string> Path to the directory that holds the content"),
+        }).ToArray();
 
-        public WebServer(int http, int https) : base(http, https) {}
+        public WebServer(int http, int https, string contentPath) : base(http, https)
+        {
+            contentDirectory = contentPath;
+        }
 
         protected override IEnumerator<WebComponent> Components()
         {
@@ -87,13 +99,9 @@ namespace Cujoe
 
         protected override async Task OnStartAsync()
         {
-            InputFile[] nextChunks = await GenerateNext();
-            while (running)
-            {
-                Task mainLoop = MainLoop(nextChunks);
-                nextChunks = await GenerateNext();
-                await mainLoop;
-            }
+            running = true;
+            Stream stream = new(GenerateNext);
+            await MainLoop(stream);
         }
 
         protected override void OnStop()
@@ -101,63 +109,69 @@ namespace Cujoe
             running = false;
         }
 
-        private async Task MainLoop(InputFile[] chunks)
+        private async Task MainLoop(Stream stream)
         {
-            foreach (InputFile chunk in chunks)
+            while (running)
             {
-                TimeSpan duration = chunk.MetaData.Duration;
+                InputFile file = await stream.Next();
+
+                latestChunk = file;
                 foreach (Queue<MediaFile> queue in registry.Values)
                 {
-                    queue.Enqueue(chunk);
+                    queue.Enqueue(file);
                 }
 
-                latestChunk = chunk;
+                Log.Write($"Broadcast chunk: {file.Label()}");
 
-                Log.Write($"Broadcast chunk: {chunk.Label()}");
-
-                await Task.Delay(duration);
+                await Task.Delay(file.MetaData.Duration);
             }
         }
 
-        private async Task<InputFile[]> GenerateNext()
+        private async IAsyncEnumerator<InputFile> GenerateNext()
         {
-            InputFile[] chunks;
+            Log.Write("Generating next video...");
+
+            InputFile input = GetNextVideo(contentDirectory);
+
+            Log.Write($"Loading video: {input.Label()}");
+
+            Guid id = Guid.NewGuid();
+            Log.Write($"Fragmenting video id: {id}");
+            await foreach (InputFile file in FragmentVideo(id, input))
+            {
+                yield return file;
+            }
+
+            Log.Write($"Fragmenting complete: {id}");
+        }
+
+        private InputFile GetNextVideo(string contentDirectory)
+        {
+            string[] fileChoices;
             do
             {
-                Log.Write("Generating next video...");
-                InputFile video = GetNextVideo();
-                Log.Write($"Loading video: {video.Label()}");
-                chunks = await GetVideoChunks(video);
-                if (!Success()) { Log.Write("Loading failed"); }
-            } while (!Success());
+                string[] directoryChoices = Directory.GetDirectories(contentDirectory)
+                                                     .Where(directory => ValidContent.Any(directory.EndsWith))
+                                                     .ToArray();
 
-            Log.Write("Loading successful");
+                if (directoryChoices.Length <= 0)
+                {
+                    Log.Write($"Content directory is empty: {contentDirectory}");
+                    return null;
+                }
 
-            return chunks;
+                int directoryIndex = random.Next(directoryChoices.Length);
+                string selectedDirectory = directoryChoices[directoryIndex];
 
-            bool Success() => chunks?.Length >= 0;
-        }
+                Log.Write($"Searching Directory files: {selectedDirectory}");
 
-        private InputFile GetNextVideo()
-        {
-            string[] directoryChoices = Directory.GetDirectories(ContentDirectory);
-
-            if (directoryChoices.Length <= 0)
-            {
-                Log.Write($"Content directory is empty: {ContentDirectory}");
-                return null;
-            }
-
-            int directoryIndex = random.Next(directoryChoices.Length);
-            string selectedDirectory = directoryChoices[directoryIndex];
-
-            string[] fileChoices = Directory.GetFiles(selectedDirectory);
-
-            if (fileChoices.Length <= 0)
-            {
-                Log.Write($"Selected directory does not contain any files: {selectedDirectory}");
-                return null;
-            }
+                fileChoices = Directory.EnumerateFiles(selectedDirectory, "*.*", SearchOption.AllDirectories).ToArray();
+                if (fileChoices.Length <= 0)
+                {
+                    Log.Write($"Selected directory does not contain any files: {selectedDirectory}");
+                }
+                
+            } while (fileChoices.Length <= 0);
 
             int fileIndex = random.Next(fileChoices.Length);
             string selectedFile = fileChoices[fileIndex];
@@ -165,85 +179,179 @@ namespace Cujoe
             return new InputFile(selectedFile);
         }
 
-        private async Task<InputFile[]> GetVideoChunks(InputFile input)
-        {
-            Guid id = Guid.NewGuid();
-            Log.Write("Fragmenting video");
-            return await FragmentVideo(id, input);
-        }
-
-        private async Task<InputFile[]> FragmentVideo(Guid id, InputFile input)
+        private async IAsyncEnumerable<InputFile> FragmentVideo(Guid id, InputFile input)
         {
             await engine.GetMetaDataAsync(input, CancellationToken.None);
             TimeSpan duration = input.MetaData.Duration;
 
-            List<Task<InputFile>> tasks = new();
+            List<Chunk> chunks = new();
             for (int i = 0; (i * TargetChunkDuration) + MinChunkDuration < duration; i++)
             {
-                string path = Path.Combine(ChunkDirectory, id.ToString());
+                string path = Path.Combine(DefaultChunkDirectory, id.ToString());
 
                 Directory.CreateDirectory(path);
 
-                OutputFile output = new OutputFile(Path.Combine(path, $"{i}.{VIDEO_FORMAT}"));
+                OutputFile output = new(Path.Combine(path, $"{i}.{VIDEO_FORMAT}"));
 
                 TimeSpan chunkStart = TargetChunkDuration * i;
                 TimeSpan chunkDuration = TargetChunkDuration;
 
+                Chunk chunk = new(engine, chunkStart, chunkDuration, output);
+                chunks.Add(chunk);
+            }
+
+            for (int i = 0; i < chunks.Count; i += ConversionProcessors)
+            {
+                Index start = i;
+                Index end = i + ConversionProcessors;
+                Chunk[] chunkBatch = chunks.Take(new Range(start, end)).ToArray();
+                Task<InputFile>[] processors = chunkBatch.Select(chunk => chunk.Convert(input, new ConversionOptions
+                {
+                    VideoFormat = VIDEO_FORMAT,
+                    ExtraArguments = $"-cpu-used -5 -deadline realtime -threads {Environment.ProcessorCount}"
+                })).ToArray();
+
+                Task<InputFile[]> convert = Task.WhenAll(processors);
+
+                InputFile[] files = null;
+
                 try
                 {
-                    tasks.Add(GetChunk(input, output, chunkStart, chunkDuration, new ConversionOptions
-                    {
-                        VideoFormat = VIDEO_FORMAT,
-                        ExtraArguments = $"-cpu-used -5 -deadline realtime -threads {Environment.ProcessorCount}"
-                    }));
+                    files = await convert;
                 }
-                catch (TimeoutException exception)
+                catch (Exception)
                 {
-                    throw new TimeoutException($"{exception.Message} Convert '{input.Label()}': {chunkStart} - {chunkStart + chunkDuration} took longer than {ConvertTimeout.TotalSeconds} seconds.");
-                }
-
-            }
-
-            Task<InputFile[]> process = Task.WhenAll(tasks);
-
-            InputFile[] chunks;
-            try
-            {
-                chunks = await process;
-            }
-            catch (Exception)
-            {
-                if (process.Exception != null)
-                {
-                    foreach (Exception exception in process.Exception.InnerExceptions)
+                    if (convert.Exception != null)
                     {
-                        Log.Write(exception.Message);
+                        foreach (Exception exception in convert.Exception.InnerExceptions)
+                        {
+                            Log.Write(exception.Message);
+                        }
                     }
                 }
-                return null;
+
+                foreach (InputFile file in files)
+                {
+                    yield return file;
+                }
             }
 
-            return chunks;
-        }
-
-        private async Task<InputFile> GetChunk(InputFile input, OutputFile output, TimeSpan chunkStart, TimeSpan chunkDuration, ConversionOptions options)
-        {
-            options.CutMedia(chunkStart, chunkDuration);
-
-            MediaFile video;
-            try
-            {
-                video = await engine.ConvertAsync(input, output, options, CancellationToken.None).WaitAsync(ConvertTimeout);
-            }
-            catch (TimeoutException exception)
-            {
-                throw new TimeoutException($"{exception.Message} Convert '{input.FileInfo.Name}': {chunkStart} - {chunkStart + chunkDuration}");
-            }
-            InputFile chunk = new InputFile(video.FileInfo.FullName);
-            await engine.GetMetaDataAsync(chunk, CancellationToken.None);
-            return chunk;
+            yield return null;
         }
 
         private static string GetSystemPath(string path) => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, SystemPath.Format(path));
+
+        public class Chunk
+        {
+            private readonly Engine engine;
+            private readonly TimeSpan start;
+            private readonly TimeSpan duration;
+            private readonly OutputFile output;
+
+            public Chunk(Engine engine, TimeSpan start, TimeSpan duration, OutputFile output)
+            {
+                this.engine = engine;
+                this.start = start;
+                this.duration = duration;
+                this.output = output;
+            }
+
+            public async Task<InputFile> Convert(InputFile input, ConversionOptions options)
+            {
+                options.CutMedia(start, duration);
+
+                MediaFile file;
+                try
+                {
+                    file = await engine.ConvertAsync(input, output, options, CancellationToken.None).WaitAsync(ConvertTimeout);
+                }
+                catch (TimeoutException exception)
+                {
+                    throw new TimeoutException($"{exception.Message} Convert '{input.FileInfo.Name}': {start} - {start + duration}");
+                }
+                InputFile chunk = new(file.FileInfo.FullName);
+                await engine.GetMetaDataAsync(chunk, CancellationToken.None);
+
+                Log.Write($"Done: {start} - {start + duration}");
+
+                return chunk;
+            }
+        }
+
+        public class Stream
+        {
+            private const int CHUNK_THRESHOLD = 30;
+
+            private readonly Queue<InputFile> queue = new();
+            private IAsyncEnumerator<InputFile> enumerator;
+
+            private bool running = false;
+
+            public Stream(Func<IAsyncEnumerator<InputFile>> generator)
+            {
+                enumerator = GetEnumerator(generator);
+            }
+
+            public void Queue(InputFile file)
+            {
+                queue.Enqueue(file);
+            }
+
+            public async Task<InputFile> Next()
+            {
+                if (queue.Count <= 0)
+                {
+                    Log.Write("Warning: Stream ran out of chunks, waiting for data...");
+
+                    await GenerateData();
+
+                    return queue.Dequeue();
+                }
+
+                if (!running && queue.Count < CHUNK_THRESHOLD)
+                {
+                    Log.Write($"Warning: Stream has fell below chunk threshold '{CHUNK_THRESHOLD}' chunks, generating data...");
+
+                    #pragma warning disable CS4014
+                    GenerateData();
+                    #pragma warning restore CS4014
+                }
+
+                return queue.Dequeue();
+            }
+
+            public async Task GenerateData()
+            {
+                if (running) { Log.Write("Warning: Generator already running"); return; }
+                running = true;
+
+                await enumerator.MoveNextAsync();
+                Queue(enumerator.Current);
+
+                #pragma warning disable CS4014
+                Task.Run(async () =>
+                {
+                    while (queue.Count <= CHUNK_THRESHOLD)
+                    {
+                        await enumerator.MoveNextAsync();
+                        Queue(enumerator.Current);
+                    } 
+                    running = false;
+                });
+                #pragma warning restore CS4014
+            }
+
+            public async IAsyncEnumerator<InputFile> GetEnumerator(Func<IAsyncEnumerator<InputFile>> generator)
+            {
+                while (true) {
+                    enumerator = generator();
+                    while (await enumerator.MoveNextAsync())
+                    {
+                        yield return enumerator.Current;
+                    }
+                    await enumerator.DisposeAsync();
+                }
+            }
+        }
     }
 }

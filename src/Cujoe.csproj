@@ -47,4 +47,8 @@
 		<ProjectReference Include="..\JapeCore\JapeService\JapeService.csproj" />
 		<ProjectReference Include="..\JapeCore\JapeWeb\JapeWeb.csproj" />
 	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="private\" />
+	</ItemGroup>
 </Project>

@@ -9,27 +9,29 @@ using JapeWeb;
 
 namespace Cujoe
 {
-    internal class Program : ConsoleProgram<int, int>
+    internal class Program : ConsoleProgram<int, int, string>
     {
         protected override string DefaultLog => "server.log";
 
         private int http;
         private int https;
+        private string contentPath;
 
         private static async Task Main(string[] args) => await RunAsync<Program>(args);
 
-        protected override IEnumerable<ICommandArg> Args() => Service.Args;
+        protected override ICommandArg[] Args() => WebServer.Args;
 
-        protected override void OnSetup(int http, int https)
+        protected override void OnSetup(int http, int https, string contentPath)
         {
             this.http = http;
             this.https = https;
+            this.contentPath = contentPath;
         }
 
         protected override async Task OnStartAsync()
         {
             SyncReload();
-            WebServer webServer = new(http, https);
+            WebServer webServer = new(http, https, contentPath);
             await webServer.Start();
         }
 

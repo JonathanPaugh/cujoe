@@ -7,12 +7,12 @@
     },
     "StaticServer": {
       "commandName": "Project",
-      "commandLineArgs": "--http 8000"
+      "commandLineArgs": "--http 8000 --content \"P:\\Web Development\\Cujoe\\src\\content\""
     },
     "LiveServer": {
       "commandName": "Executable",
       "executablePath": "dotnet.exe",
-      "commandLineArgs": "watch run --http 8000",
+      "commandLineArgs": "watch run --http 8000 --content \"P:\\Web Development\\Cujoe\\src\\content\"",
       "workingDirectory": "$(ProjectDir)",
       "launchBrowser": true,
       "applicationUrl": "http://localhost:8000"

@@ -4,6 +4,6 @@
     <DebuggerFlavor>ProjectDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup>
-    <ActiveDebugProfile>LiveServer</ActiveDebugProfile>
+    <ActiveDebugProfile>StaticServer</ActiveDebugProfile>
   </PropertyGroup>
 </Project>
