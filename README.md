@@ -2,6 +2,10 @@
 
 A video streaming implementation using my [C# Webserver](https://github.com/JonathanPaugh/CSharpWebServer) project.
 
+## Requirements
+
+FFmpeg must be included in the "/src/ffmpeg" folder.
+
 ## Overview
 
 I made this project because I was curious to learn about how to serve a video stream to multiple clients from a webserver. It is a rough implementation, however it is fully functional.
