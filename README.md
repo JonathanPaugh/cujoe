@@ -14,13 +14,13 @@ FFmpeg must be included in the "/src/ffmpeg" folder.
 
 ## How it works
 
-The webserver works by first selecting a video file to stream from a given content folder. This video file is then fragmented into smaller chunks using [FFmpeg](https://ffmpeg.org/) and converted to a format compatible for streamed web video. The video chunks are then loaded into the main video queue.
+The web server works by first selecting a video file to stream from a given content folder. This video file is then fragmented into smaller chunks using [FFmpeg](https://ffmpeg.org/) and converted to a format compatible for streamed web video. The video chunks are then loaded into the main video queue.
 
 When a client connects it sends a request to the webserver to register it, meaning it is ready to receive video chunks. The video chunk at the front of the queue is dequeued and sent to all registered clients, where it is pushed into the video buffer. The webserver then waits for the video chunk duration before sending the next chunk, ensuring all clients stay in sync.
 
 ## Usage
 
-Set the `ValidContent` property in `WebServer` to the content directories to stream from.
+1. Set the `ValidContent` property in `WebServer` to the content directories to stream from.
 
 Example:
 
@@ -37,6 +37,6 @@ Then we provide the base "content" folder to the program's content arg when runn
 
 `--content "/content"`
 
-Build the server and run it locally.
+2. Build the server and run it locally.
 
 `Cujoe.exe --http <port> --content <insert-content-path>`
