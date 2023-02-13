@@ -1,6 +1,6 @@
 # Cujoe
 
-A video streaming implementation using my [C# Webserver](https://github.com/JonathanPaugh/CSharpWebServer) project.
+A video streaming implementation using my [C# WebServer](https://github.com/JonathanPaugh/CSharpWebServer) project.
 
 ## Overview
 
