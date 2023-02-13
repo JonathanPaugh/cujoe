@@ -30,7 +30,7 @@ namespace Cujoe
 
         private static string DefaultChunkDirectory => GetSystemPath("chunks");
 
-        private static string[] ValidContent => new [] { "at", "sb" };
+        private static string[] ValidContent => new [] { "at" };
 
         private readonly Engine engine = new(GetSystemPath("ffmpeg/ffmpeg.exe"));
         private readonly Dictionary<string, Queue<MediaFile>> registry = new();
@@ -271,7 +271,7 @@ namespace Cujoe
                 InputFile chunk = new(file.FileInfo.FullName);
                 await engine.GetMetaDataAsync(chunk, CancellationToken.None);
 
-                Log.Write($"Chunk '{start} - {start + duration}': {chunk.Label()}");
+                Log.Write($"Generate chunk '{start} - {start + duration}': {chunk.Label()}");
 
                 return chunk;
             }
