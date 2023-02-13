@@ -16,7 +16,7 @@ FFmpeg must be included in the "/src/ffmpeg" folder.
 
 The web server works by first selecting a video file to stream from a given content folder. This video file is then fragmented into smaller chunks using [FFmpeg](https://ffmpeg.org/) and converted to a format compatible for streamed web video. The video chunks are then loaded into the main video queue.
 
-When a client connects it sends a request to the webserver to register it, meaning it is ready to receive video chunks. The video chunk at the front of the queue is dequeued and sent to all registered clients, where it is pushed into the video buffer. The webserver then waits for the video chunk duration before sending the next chunk, ensuring all clients stay in sync.
+When a client connects it sends a request to the web server to register it, meaning it is ready to receive video chunks. The video chunk at the front of the queue is dequeued and sent to all registered clients, where it is pushed into the video buffer. The web server then waits for the video chunk duration before sending the next chunk, ensuring all clients stay in sync.
 
 ## Usage
 
